@@ -1,0 +1,94 @@
+#define NUM_SAMPLE 15000 //число выборок для среднего напряжения
+#define BATTERY_VOLTAGE 12.00 //номинальное напряжение батареи
+#define DIVIDER 3 //коэффициент делителя аналог. входа
+#define SEC 10 //задержка между измерениями
+#define RELAY 13 //номер ноги с реле
+
+#include <stDHT.h>
+DHT sens(DHT11);
+const int SENSOR = 7;
+
+void setup() {
+  pinMode(8 && 9 && 10 && 11 && 12 && 13, OUTPUT);
+  Serial.begin(9600);
+  digitalWrite(SENSOR, true);
+}// инициализация последовательного порта на скорости 9600:
+float a = 0;
+int cycle = 0;
+float average;
+bool F1 = false;
+bool F2 = false;
+
+
+void loop() {// цикл
+
+  digitalWrite(RELAY, HIGH);
+  delay(SEC*1000);
+  
+  int light;
+  long sum = 0;
+  for (int i = 0; i < NUM_SAMPLE; i++) {
+    sum += analogRead(A0); // читаем вход на аналоговом пине А0 и складываем его
+  } average = sum / NUM_SAMPLE; // вычисляем среднее значение
+
+  a = 5 * DIVIDER * average / 1023;
+
+  int h = sens.readHumidity(SENSOR);
+  int t = sens.readTemperature(SENSOR);
+
+  Serial.print("влажность: ");
+  Serial.print(h);
+  Serial.print("%\n");
+  Serial.print("температура: ");
+  Serial.print(t);
+  Serial.print("°C\n");
+  Serial.print(a);
+  Serial.print(" Вольт\n");
+  // преобразуем аналоговый сигнал (амплитуда 0 - 1023) в напряжение (0 - 5В):
+  // используем делитель 1к3, чтобы входной сигнал попал в ограничение до 5В;
+  // выводим значение напряжения:
+  if (a < 0.93 * BATTERY_VOLTAGE) //если разрядилась ниже 11,2В, то сработал нижний флаг;
+  {
+    F1 = true;
+  }
+  if (a > BATTERY_VOLTAGE) //если зарядилась выше 12,0В, то сработал верхний флаг;
+  {
+    F2 = true;
+  }
+  if (F1 && F2) //если оба флага истинны,значит добавляем +1 к счетчику циклов;
+  { cycle++;
+    F1 = F2 = false;
+  }    //обнуляем оба флага;
+ Serial.print(cycle);
+ Serial.print(" число циклов\n");
+  if (1.00 < a && a < BATTERY_VOLTAGE * 0.77)
+  {
+    digitalWrite(10, HIGH);  //red_led-underrvoltage
+  } else {
+    digitalWrite(10, LOW);
+  }
+  if (a < 1.00)
+  {
+    digitalWrite(12, HIGH);  //red_led-circuit_crashed
+  } else {
+    digitalWrite(12, LOW);
+  }
+  if (a > 1, 15 * BATTERY_VOLTAGE)
+  {
+    digitalWrite(11, HIGH);  //yellow_led-overvoltage
+  } else {
+    digitalWrite(11, LOW);
+  }
+
+  light = analogRead(A1);
+  Serial.print(light);
+  Serial.print(" освещенность\n");
+  Serial.print("__________________\n");
+ 
+
+  //digitalWrite(RELAY, LOW);
+  //delay(SEC*1000);
+  //digitalWrite(RELAY, HIGH);
+  //delay(SEC*1000);
+  
+}
